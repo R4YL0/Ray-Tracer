@@ -3,6 +3,7 @@
 
 #include <string>
 #include <stdio.h>
+#include <mutex>
 
 #include "rtweekend.h"
 
@@ -16,6 +17,7 @@ class camera {
     int     image_width       = 100;
     int     samples_per_pixel = 10; // Anti-Aliasing Samples
     int     max_depth         = 10; // Ray Bounces Limit
+    color   background;
 
     // Camera Position
     double vfov     = 90; // Vertical FoV
@@ -39,7 +41,7 @@ class camera {
         renderedFile << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
         for(int j = 0; j < image_height; j++) {
-            std::clog << "\rScanlines remaining: " << (image_height - j) << '\n' << std::flush;
+            std::clog << "Starting Render...\n\rResolution: " << image_width << "x" <<image_height <<"\n" << std::flush;
             for(int i = 0; i < image_width; i++) {
                 color pixel_color(0,0,0);
                 for(int sample = 0; sample < samples_per_pixel; sample++) {
@@ -48,6 +50,7 @@ class camera {
                 }
                 write_color(renderedFile, pixel_samples_scale * pixel_color);
             }
+            std::clog << "\rScanlines remaining: " << --counter << '\n' << std::flush;
         }
         renderedFile.close();
         std::clog << "\r Done. \n";
@@ -58,7 +61,7 @@ class camera {
 
 
         // Divide the Work
-        std::clog << "Starting Threads\n";
+        std::clog << "Starting Render with " << threads << " Threads...\n\rResolution: " << image_width << "x" <<image_height <<"\n" << std::flush;
         thread t[threads];
         for(int i = 0; i < threads; i++) {
             t[i] = thread(&camera::renderMT, this, std::cref(world), i, threads);
@@ -81,7 +84,7 @@ class camera {
 
         // Output File        
         ofstream renderedFile;
-        renderedFile.open(output);
+        renderedFile.open("../../Rendered_Images/"+output);
         
         renderedFile << "P3\n" << image_width << ' ' << image_height << "\n255\n";
         std::string line;
@@ -114,6 +117,10 @@ class camera {
     vec3    u, v, w;                // Camera frame basis vectors
     vec3    defocus_disk_u;
     vec3    defocus_disk_v;
+
+    std::mutex counterLock;
+    std::mutex finishLock;
+    int counter = 0;
 
     void initialize() {
         image_height = int(image_width / aspect_ratio);
@@ -150,6 +157,9 @@ class camera {
         auto defocus_radius = focus_dist * tan(degrees_to_radians(defocus_angle / 2));
         defocus_disk_u = u * defocus_radius;
         defocus_disk_v = v * defocus_radius;
+
+        // Process Line Counter
+        counter = image_height;
     }
 
     ray get_ray(int i , int j) const {
@@ -183,20 +193,22 @@ class camera {
         
         hit_record rec;
 
+        // Ambient Illumination
+        if(!world.hit(r, interval(0.001, infinity), rec))
+            return background;
+        
         // Ray Bouncing
-        if(world.hit(r, interval(0.001, infinity), rec)) {
-            ray scattered;
-            color attenuation;
-            if (rec.mat->scatter(r, rec, attenuation, scattered))
-                return attenuation * ray_color(scattered, depth-1, world);
-            return color(0, 0, 0);
-            
-        }
+        ray scattered;
+        color attenuation;
+        color color_from_emission = rec.mat->emitted(rec.u, rec.v, rec.p);
 
-        // Background Illumination
-        vec3 unit_direction = unit_vector(r.direction());
-        auto a = 0.5 * (unit_direction.y() + 1.0);
-        return (1.0-a)*color(1.0,1.0,1.0) + a*color(0.5,0.7,1.0);
+        if(!rec.mat->scatter(r, rec, attenuation, scattered))
+            return color_from_emission;
+
+        color color_from_scatter = attenuation * ray_color(scattered, depth-1, world);
+
+        return color_from_emission + color_from_scatter;
+
     }
 
     void renderMT(const hittable& world, int curr, int threads) {
@@ -212,8 +224,11 @@ class camera {
                 }
                 write_color(file, pixel_samples_scale * pixel_color);
             }
+            std::lock_guard<std::mutex> lock(counterLock);
+            std::clog << "\rScanlines remaining: " << --counter << '\n' << std::flush;
         }
         file.close();
+        std::lock_guard<std::mutex> lock(finishLock);
         std::clog << "Thread " << curr << " finished\n" << std::flush;
         return;
     }
