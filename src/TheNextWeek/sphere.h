@@ -9,11 +9,19 @@ class sphere : public hittable {
     public:
         //Stationary Sphere
         sphere(const point3& center, double radius, shared_ptr<material> mat)
-         : center1(center), radius(fmax(0, radius)), mat(mat), is_moving(false) {}
+         : center1(center), radius(fmax(0, radius)), mat(mat), is_moving(false) {
+            auto rvec = vec3(radius, radius, radius);
+            bbox = aabb(center1 - rvec, center1 + rvec);
+         }
         
         //Moving Sphere
         sphere(const point3& center1, const point3& center2, double radius, shared_ptr<material> mat)
          : center1(center1), radius(fmax(0, radius)), mat(mat), is_moving(true) {
+            auto rvec = vec3(radius, radius, radius);
+            aabb box1(center1 - rvec, center1 + rvec);
+            aabb box2(center2 - rvec, center2 + rvec);
+            bbox = aabb(box1, box2);
+            
             center_vec = center2 - center1;
          }
 
@@ -43,10 +51,13 @@ class sphere : public hittable {
             rec.p = r.at(rec.t);
             vec3 outward_normal = (rec.p - center) / radius;
             rec.set_face_normal(r, outward_normal);
+            get_sphere_uv(outward_normal, rec.u, rec.v);
             rec.mat = mat;
 
             return true;
         }
+
+        aabb bounding_box() const override {return bbox;}
 
     private:
         point3 center1;
@@ -54,9 +65,22 @@ class sphere : public hittable {
         shared_ptr<material> mat;
         bool is_moving;
         vec3 center_vec;
+        aabb bbox;
 
         point3 sphere_center(double time) const {
             return center1 + time*center_vec;
+        }
+
+        static void get_sphere_uv(const point3& p, double& u, double& v) {
+            // p: Given point of radius one, centered at origin
+            // u: returned value [0,1] around Y axis from X = -1
+            // v: returned value [0,1] of angle from Y=-1 to Y=+1
+
+            auto theta = acos(-p.y());
+            auto phi = atan2(-p.z(), p.x()) + pi;
+
+            u = phi / (2*pi);
+            v = theta / pi;
         }
 };
 

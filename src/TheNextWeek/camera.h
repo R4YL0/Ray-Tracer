@@ -71,7 +71,7 @@ class camera {
         std::ifstream files[threads];
         std::string fileName[threads];
         for(int i = 0; i < threads; i++) {
-            fileName[i] = "render" + std::to_string(i) + ".txt";
+            fileName[i] = "render" + std::to_string(i);
             files[i].open(fileName[i]);
             if(!files[i].is_open()) {
                 std::cout << "Error Reading File: render" + std::to_string(i) + ".exe";
@@ -201,7 +201,7 @@ class camera {
 
     void renderMT(const hittable& world, int curr, int threads) {
         ofstream file;
-        file.open("render" + std::to_string(curr) + ".txt");
+        file.open("render" + std::to_string(curr));
 
         for(int j = curr; j < image_height; j+= threads) {
             for(int i = 0; i < image_width; i++) {

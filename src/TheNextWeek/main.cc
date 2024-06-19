@@ -1,10 +1,12 @@
 #include "rtweekend.h"
 
+#include "bvh.h"
 #include "camera.h"
 #include "hittable.h"
 #include "hittable_list.h"
 #include "material.h"
 #include "sphere.h"
+#include "texture.h"
 
 #include <chrono>
 using namespace std::chrono;
@@ -36,9 +38,6 @@ void performance(camera& cam, const hittable_list world) {
 }
 
 void scene1(hittable_list& world, camera& cam) {
-    // FileName
-    cam.output = "scene1.ppm";
-    
     // Materials    
     auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
     auto material_center = make_shared<lambertian>(color(0.1, 0.2, 0.5));
@@ -69,12 +68,12 @@ void scene1(hittable_list& world, camera& cam) {
     cam.defocus_angle = 0.0;
     cam.focus_dist    = 1.0;
 
+    // Output
+    cam.output = "scene1.ppm";
+    
     return;
 }
 void scene2(hittable_list& world, camera& cam) {
-    // FileName
-    cam.output = "scene2.ppm";
-    
     // Variables
     auto R = cos(pi/4);
 
@@ -102,13 +101,13 @@ void scene2(hittable_list& world, camera& cam) {
     cam.defocus_angle = 0.0;
     cam.focus_dist    = 10.0;
 
+    // Output
+    cam.output = "scene2.ppm";
+    
     return;
 }
 
 void scene3(hittable_list& world, camera& cam) {
-    // FileName
-    cam.output = "scene3.ppm";
-    
     // Materials
     auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
     auto material1 = make_shared<dialectric>(1.5);
@@ -164,12 +163,12 @@ void scene3(hittable_list& world, camera& cam) {
     cam.defocus_angle = 0.6;
     cam.focus_dist    = 10.0;
     
+    // Output
+    cam.output = "scene3.ppm";
+    
     return;
 }
 void scene3_lite(hittable_list& world, camera& cam) {
-    // FileName
-    cam.output = "scene3_lite.ppm";
-    
     // Materials
     auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
     auto material1 = make_shared<dialectric>(1.5);
@@ -225,21 +224,21 @@ void scene3_lite(hittable_list& world, camera& cam) {
     cam.defocus_angle = 0.6;
     cam.focus_dist    = 10.0;
     
+    // Output
+    cam.output = "scene3_lite.ppm";
+    
     return;
 }
 
 void scene4(hittable_list& world, camera& cam) {
-    // FileName
-    cam.output = "scene4.ppm";
-
     // Materials
-    auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+    auto checker   = make_shared<checker_texture>(0.32, color(.2, .3, .1), color(.9, .9, .9));
     auto material1 = make_shared<dialectric>(1.5);
     auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
     auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
 
     // Objects
-    world.add(make_shared<sphere>(point3( 0, -1000, 0), 1000, ground_material));
+    world.add(make_shared<sphere>(point3( 0, -1000, 0), 1000, make_shared<lambertian>(checker)));
     world.add(make_shared<sphere>(point3( 0,     1, 0),  1.0, material1));
     world.add(make_shared<sphere>(point3(-4,     1, 0),  1.0, material2));
     world.add(make_shared<sphere>(point3( 4,     1, 0),  1.0, material3));
@@ -272,6 +271,9 @@ void scene4(hittable_list& world, camera& cam) {
         }
     }
 
+    //Add BVH
+    world = hittable_list(make_shared<bvh_node>(world));
+
     // Camera Resolution
     cam.aspect_ratio      = 16.0 / 9.0;
     cam.image_width       = 400;
@@ -288,6 +290,99 @@ void scene4(hittable_list& world, camera& cam) {
     cam.defocus_angle = 0.6;
     cam.focus_dist    = 10.0;
     
+    // Output
+    cam.output = "scene4.ppm";
+
+    return;
+}
+
+void scene5(hittable_list& world, camera& cam) {
+    // Materials
+    auto checker = make_shared<checker_texture>(0.32, color(.2, .3, .1), color(.9, .9, .9));
+
+    // Objects
+    world.add(make_shared<sphere>(point3(0, -10, 0), 10, make_shared<lambertian>(checker)));
+    world.add(make_shared<sphere>(point3(0,  10, 0), 10, make_shared<lambertian>(checker)));
+
+    // Camera Resolution
+    cam.aspect_ratio      = 16.0 / 9.0;
+    cam.image_width       = 400;
+    cam.samples_per_pixel = 100;
+    cam.max_depth         = 50;
+
+    // Camera Position
+    cam.vfov     = 20;
+    cam.lookfrom = point3(13, 2, 3);
+    cam.lookat   = point3(0, 0, 0);
+    cam.vup      = vec3(0, 1, 0);
+
+    // Depth of Field
+    cam.defocus_angle = 0.0;
+
+    // FileName
+    cam.output = "scene5.ppm";
+    
+    return;
+}
+
+void scene6(hittable_list& world, camera& cam) {
+    // Textures
+    auto earth_texture = make_shared<image_texture>("earthmap.jpg");
+
+    // Materials
+    auto earth_surface = make_shared<lambertian>(earth_texture);
+    
+    // Objects
+    auto globe = make_shared<sphere>(point3(0,0,0), 2, earth_surface);
+    world.add(globe);
+
+    // Camera Resolution
+    cam.aspect_ratio      = 16.0 / 9.0;
+    cam.image_width       = 400;
+    cam.samples_per_pixel = 100;
+    cam.max_depth         = 50;
+
+    // Camera Position
+    cam.vfov     = 20;
+    cam.lookfrom = point3(0, 0, 12);
+    cam.lookat   = point3(0, 0, 0);
+    cam.vup      = vec3(0, 1, 0);
+
+    // Depth of Field
+    cam.defocus_angle = 0.0;
+
+    // FileName
+    cam.output = "scene6.ppm";
+    
+    return;
+}
+
+void scene7(hittable_list& world, camera& cam) {
+    // Materials
+    auto pertext = make_shared<noise_texture>(4);
+
+    // Objects
+    world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, make_shared<lambertian>(pertext)));
+    world.add(make_shared<sphere>(point3(0, 2, 0), 2, make_shared<lambertian>(pertext)));
+
+    // Camera Resolution
+    cam.aspect_ratio      = 16.0 / 9.0;
+    cam.image_width       = 400;
+    cam.samples_per_pixel = 100;
+    cam.max_depth         = 50;
+
+    // Camera Position
+    cam.vfov     = 20;
+    cam.lookfrom = point3(13, 2, 3);
+    cam.lookat   = point3(0, 0, 0);
+    cam.vup      = vec3(0, 1, 0);
+
+    // Depth of Field
+    cam.defocus_angle = 0.0;
+
+    // FileName
+    cam.output = "scene7.ppm";
+    
     return;
 }
 
@@ -299,11 +394,11 @@ int main() {
     camera cam;
 
     //Scene
-    scene4(world, cam);
+    scene7(world, cam);
 
     //Renderer w/ Performance measurement
     auto begin = high_resolution_clock::now();
-    cam.render(world,8);
+    cam.render(world, 8);
     auto end = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(end - begin);
 
