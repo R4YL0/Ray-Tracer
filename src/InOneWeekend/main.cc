@@ -39,8 +39,8 @@ void scene1(hittable_list& world, camera& cam) {
     // Materials    
     auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
     auto material_center = make_shared<lambertian>(color(0.1, 0.2, 0.5));
-    auto material_left   = make_shared<dialectric>(1.5);
-    auto material_bubble = make_shared<dialectric>(1.00 / 1.50);
+    auto material_left   = make_shared<dielectric>(1.5);
+    auto material_bubble = make_shared<dielectric>(1.00 / 1.50);
     auto material_right  = make_shared<metal>(color(0.8, 0.6, 0.2), 1.0);
     
     // Objects
@@ -102,7 +102,7 @@ void scene2(hittable_list& world, camera& cam) {
 void scene3(hittable_list& world, camera& cam) {
     // Materials
     auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
-    auto material1 = make_shared<dialectric>(1.5);
+    auto material1 = make_shared<dielectric>(1.5);
     auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
     auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
 
@@ -132,7 +132,7 @@ void scene3(hittable_list& world, camera& cam) {
                     sphere_material = make_shared<metal>(albedo, fuzz);
                     world.add(make_shared<sphere>(center, 0.2, sphere_material));
                 } else {
-                    sphere_material = make_shared<dialectric>(1.5);
+                    sphere_material = make_shared<dielectric>(1.5);
                     world.add(make_shared<sphere>(center, 0.2, sphere_material));
                 }
             }
@@ -161,7 +161,7 @@ void scene3(hittable_list& world, camera& cam) {
 void scene3_lite(hittable_list& world, camera& cam) {
     // Materials
     auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
-    auto material1 = make_shared<dialectric>(1.5);
+    auto material1 = make_shared<dielectric>(1.5);
     auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
     auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
 
@@ -191,7 +191,7 @@ void scene3_lite(hittable_list& world, camera& cam) {
                     sphere_material = make_shared<metal>(albedo, fuzz);
                     world.add(make_shared<sphere>(center, 0.2, sphere_material));
                 } else {
-                    sphere_material = make_shared<dialectric>(1.5);
+                    sphere_material = make_shared<dielectric>(1.5);
                     world.add(make_shared<sphere>(center, 0.2, sphere_material));
                 }
             }
