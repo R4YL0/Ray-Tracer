@@ -60,6 +60,8 @@ class translate : public hittable {
 
         aabb bounding_box() const override {return bbox;}
 
+        point3 center(double time) const override {return object->center(time);}
+
     private:
         shared_ptr<hittable> object;
         vec3 offset;
@@ -101,11 +103,14 @@ class rotate_y : public hittable {
 
         bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
             // Change Ray from world space to object space
-            auto origin = r.origin();
+            auto origin = r.origin() - object->center(r.time());
             auto direction = r.direction();
+            point3 Cpy = origin;
 
-            origin[0] = cos_theta*r.origin()[0] - sin_theta*r.origin()[2];
-            origin[2] = sin_theta*r.origin()[0] + cos_theta*r.origin()[2];
+            origin[0] = cos_theta*Cpy[0] - sin_theta*Cpy[2];
+            origin[2] = sin_theta*Cpy[0] + cos_theta*Cpy[2];
+
+            origin += object->center(r.time());
 
             direction[0] = cos_theta*r.direction()[0] - sin_theta*r.direction()[2];
             direction[2] = sin_theta*r.direction()[0] + cos_theta*r.direction()[2];
@@ -117,9 +122,13 @@ class rotate_y : public hittable {
                 return false;
             
             // Change intersection point from object space to world space
-            auto p = rec.p;
-            p[0] = cos_theta*rec.p[0] + sin_theta*rec.p[2];
-            p[2] = -sin_theta*rec.p[0] + cos_theta*rec.p[2];
+            auto p = rec.p - object->center(r.time());
+            Cpy = p;
+
+            p[0] = cos_theta*Cpy[0] + sin_theta*Cpy[2];
+            p[2] = -sin_theta*Cpy[0] + cos_theta*Cpy[2];
+
+            p += object->center(r.time());
 
             // Change Normal from object space to world space
             auto normal = rec.normal;
@@ -133,6 +142,8 @@ class rotate_y : public hittable {
         }
 
         aabb bounding_box() const override {return bbox;}
+
+        point3 center(double time) const override {return object->center(time);}
 
     private:
         shared_ptr<hittable> object;
@@ -176,18 +187,14 @@ class rotate_x : public hittable {
 
         bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
             // Change Ray from world space to object space
-            auto origin = r.origin() - object->center(r.time());
+            auto origin = r.origin() - object->center(r.time());;
             auto direction = r.direction();
-
-            /*
             point3 Cpy = origin;
-            origin[2] = cos_theta*Cpy[2] - sin_theta*Cpy[1] + object->center(r.time())[2];
-            origin[1] = sin_theta*Cpy[2] + cos_theta*Cpy[1] + object->center(r.time())[1];
-            origin[0] = r.origin()[0];
-            */
 
-            origin[2] = cos_theta*r.origin()[2] - sin_theta*r.origin()[1];
-            origin[1] = sin_theta*r.origin()[2] + cos_theta*r.origin()[1];
+            origin[2] = cos_theta*Cpy[2] - sin_theta*Cpy[1];
+            origin[1] = sin_theta*Cpy[2] + cos_theta*Cpy[1];
+
+            origin += object->center(r.time());
 
             direction[2] = cos_theta*r.direction()[2] - sin_theta*r.direction()[1];
             direction[1] = sin_theta*r.direction()[2] + cos_theta*r.direction()[1];
@@ -199,12 +206,17 @@ class rotate_x : public hittable {
                 return false;
             
             // Change intersection point from object space to world space
-            auto p = rec.p;
-            p[2] = cos_theta*rec.p[2] + sin_theta*rec.p[1];
-            p[1] = -sin_theta*rec.p[2] + cos_theta*rec.p[1];
+            auto p = rec.p - object->center(r.time());
+            Cpy = p;
+
+            p[2] = cos_theta*Cpy[2] + sin_theta*Cpy[1];
+            p[1] = -sin_theta*Cpy[2] + cos_theta*Cpy[1];
+
+            p += object->center(r.time());
 
             // Change Normal from object space to world space
             auto normal = rec.normal;
+
             normal[2] = cos_theta*rec.normal[2] + sin_theta*rec.normal[1];
             normal[1] = -sin_theta*rec.normal[2] + cos_theta*rec.normal[1];
 
@@ -215,6 +227,8 @@ class rotate_x : public hittable {
         }
 
         aabb bounding_box() const override {return bbox;}
+
+        point3 center(double time) const override {return object->center(time);}
 
     private:
         shared_ptr<hittable> object;
@@ -258,11 +272,14 @@ class rotate_z : public hittable {
 
         bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
             // Change Ray from world space to object space
-            auto origin = r.origin();
+            auto origin = r.origin() - object->center(r.time());
             auto direction = r.direction();
+            point3 Cpy = origin;
 
-            origin[1] = cos_theta*r.origin()[1] - sin_theta*r.origin()[0];
-            origin[0] = sin_theta*r.origin()[1] + cos_theta*r.origin()[0];
+            origin[1] = cos_theta*Cpy[1] - sin_theta*Cpy[0];
+            origin[0] = sin_theta*Cpy[1] + cos_theta*Cpy[0];
+
+            origin += object->center(r.time());
 
             direction[1] = cos_theta*r.direction()[1] - sin_theta*r.direction()[0];
             direction[0] = sin_theta*r.direction()[1] + cos_theta*r.direction()[0];
@@ -274,9 +291,13 @@ class rotate_z : public hittable {
                 return false;
             
             // Change intersection point from object space to world space
-            auto p = rec.p;
-            p[1] = cos_theta*rec.p[1] + sin_theta*rec.p[0];
-            p[0] = -sin_theta*rec.p[1] + cos_theta*rec.p[0];
+            auto p = rec.p - object->center(r.time());
+            Cpy = p;
+
+            p[1] = cos_theta*Cpy[1] + sin_theta*Cpy[0];
+            p[0] = -sin_theta*Cpy[1] + cos_theta*Cpy[0];
+
+            p += object->center(r.time());
 
             // Change Normal from object space to world space
             auto normal = rec.normal;
@@ -290,6 +311,8 @@ class rotate_z : public hittable {
         }
 
         aabb bounding_box() const override {return bbox;}
+
+        point3 center(double time) const override {return object->center(time);}
 
     private:
         shared_ptr<hittable> object;
