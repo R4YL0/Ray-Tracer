@@ -1,10 +1,10 @@
 #ifndef PDF_H
 #define PDF_H
 
-#include "Helper/rtweekend.h"
+#include "rtweekend.h"
 
 #include "onb.h"
-#include "Hittable/hittable_list.h"
+#include "../Hittable/hittable_list.h"
 
 class pdf {
     public:

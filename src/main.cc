@@ -17,7 +17,7 @@ int main() {
     camera cam;
 
     //Scene
-    scene10(world, lights, cam, 600, 1000, 50);
+    scene10(world, lights, cam, 600, 100, 50);
 
     //Renderer w/ Performance measurement
     auto begin = high_resolution_clock::now();

@@ -125,6 +125,8 @@ class circle : public quad {
             return true;
         }
 
+        //TODO: Add pdf_value and random
+
         point3 center(double time) override {return Q;}
 
     private:
@@ -184,6 +186,8 @@ class triangle : public quad {
             rec.v = b;
             return true;
         }
+        
+        //TODO: Add pdf_value and random
 
         point3 center(double time) const {return cPoint;}
 

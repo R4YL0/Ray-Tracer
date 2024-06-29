@@ -1,7 +1,7 @@
 #ifndef ONB_H
 #define ONB_H
 
-#include "Helper/rtweekend.h"
+#include "rtweekend.h"
 
 class onb {
     public:

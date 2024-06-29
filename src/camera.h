@@ -9,7 +9,7 @@
 
 #include "Hittable/hittable.h"
 #include "Materials/material.h"
-#include "pdf.h"
+#include "Helper/pdf.h"
 
 class camera {
     public:

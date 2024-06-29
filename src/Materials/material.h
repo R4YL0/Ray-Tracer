@@ -5,8 +5,8 @@
 
 #include "../Hittable/hittable.h"
 #include "texture.h"
-#include "../onb.h"
-#include "../pdf.h"
+#include "../Helper/onb.h"
+#include "../Helper/pdf.h"
 
 class hit_record;
 
