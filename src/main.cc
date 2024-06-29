@@ -11,16 +11,17 @@ using namespace std::chrono;
 int main() {
     //World
     hittable_list world;
+    hittable_list lights;
     
     //Camera
     camera cam;
 
     //Scene
-    scene6(world, cam);
+    scene10(world, lights, cam, 600, 1000, 50);
 
     //Renderer w/ Performance measurement
     auto begin = high_resolution_clock::now();
-    cam.render(world, 8);
+    cam.render(world, lights, 8);
     auto end = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(end - begin);
 

@@ -15,6 +15,8 @@ class quad : public hittable {
             D = dot(normal, Q);
             w = n/(n.length_squared());
 
+            area = n.length();
+
             cPoint = (Q + u/2 + v/2);
             
             set_bounding_box();
@@ -71,7 +73,24 @@ class quad : public hittable {
             return true;
         }
 
-        point3 center(double time) const override {return cPoint;}
+        double pdf_value(const point3& origin, const vec3& direction) const override {
+            hit_record rec;
+            if(!this->hit(ray(origin, direction), interval(0.001, infinity), rec))
+                return 0;
+            
+            auto distance_squared = rec.t * rec.t * direction.length_squared();
+            auto cosine = fabs(dot(direction, rec.normal) / direction.length());
+
+            return distance_squared / (cosine * area);
+        }
+
+        vec3 random(const point3& origin) const override {
+            //Return Random Point on Quad
+            auto p = Q + (random_double() * u) + (random_double() * v);
+            return p - origin;
+        }
+
+        point3 center(double time) override {return cPoint;}
 
     private:
         point3 Q;
@@ -81,6 +100,7 @@ class quad : public hittable {
         aabb bbox;
         vec3 normal;
         double D;
+        double area;
         point3 cPoint;
 };
 
@@ -105,7 +125,7 @@ class circle : public quad {
             return true;
         }
 
-        point3 center(double time) const override {return Q;}
+        point3 center(double time) override {return Q;}
 
     private:
         point3 Q; // Center

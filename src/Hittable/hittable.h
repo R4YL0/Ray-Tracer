@@ -34,7 +34,15 @@ class hittable {
 
         virtual aabb bounding_box() const = 0;
 
-        virtual point3 center(double time) const {return point3();} //Needed For Rotation and Scaling, default returns (0, 0, 0)
+        virtual point3 center(double time) {return point3();} //Needed For Rotation and Scaling, default returns (0, 0, 0)
+
+        virtual double pdf_value(const point3& origin, const vec3& direction) const {
+            return 0.0;
+        }
+
+        virtual vec3 random(const point3& origin) const {
+            return vec3(1, 0, 0);
+        }
 };
 
 class translate : public hittable {
@@ -60,7 +68,7 @@ class translate : public hittable {
 
         aabb bounding_box() const override {return bbox;}
 
-        point3 center(double time) const override {return object->center(time);}
+        point3 center(double time) override {return object->center(time);}
 
     private:
         shared_ptr<hittable> object;
@@ -103,14 +111,15 @@ class rotate_y : public hittable {
 
         bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
             // Change Ray from world space to object space
-            auto origin = r.origin() - object->center(r.time());
+            //auto origin = r.origin(); // Tutorial
+            auto origin = r.origin() - object->center(r.time()); // Fixed
             auto direction = r.direction();
             point3 Cpy = origin;
 
             origin[0] = cos_theta*Cpy[0] - sin_theta*Cpy[2];
             origin[2] = sin_theta*Cpy[0] + cos_theta*Cpy[2];
 
-            origin += object->center(r.time());
+            origin += object->center(r.time()); // Fixed
 
             direction[0] = cos_theta*r.direction()[0] - sin_theta*r.direction()[2];
             direction[2] = sin_theta*r.direction()[0] + cos_theta*r.direction()[2];
@@ -122,13 +131,14 @@ class rotate_y : public hittable {
                 return false;
             
             // Change intersection point from object space to world space
-            auto p = rec.p - object->center(r.time());
+            //auto p = rec.p; // Tutorial
+            auto p = rec.p - object->center(r.time()); // Fixed
             Cpy = p;
 
             p[0] = cos_theta*Cpy[0] + sin_theta*Cpy[2];
             p[2] = -sin_theta*Cpy[0] + cos_theta*Cpy[2];
 
-            p += object->center(r.time());
+            p += object->center(r.time()); // Fixed
 
             // Change Normal from object space to world space
             auto normal = rec.normal;
@@ -143,7 +153,7 @@ class rotate_y : public hittable {
 
         aabb bounding_box() const override {return bbox;}
 
-        point3 center(double time) const override {return object->center(time);}
+        point3 center(double time) override {return object->center(time);}
 
     private:
         shared_ptr<hittable> object;
@@ -228,7 +238,7 @@ class rotate_x : public hittable {
 
         aabb bounding_box() const override {return bbox;}
 
-        point3 center(double time) const override {return object->center(time);}
+        point3 center(double time) override {return object->center(time);}
 
     private:
         shared_ptr<hittable> object;
@@ -312,7 +322,7 @@ class rotate_z : public hittable {
 
         aabb bounding_box() const override {return bbox;}
 
-        point3 center(double time) const override {return object->center(time);}
+        point3 center(double time) override {return object->center(time);}
 
     private:
         shared_ptr<hittable> object;

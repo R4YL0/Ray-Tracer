@@ -9,6 +9,7 @@
 
 #include "Hittable/hittable.h"
 #include "Materials/material.h"
+#include "pdf.h"
 
 class camera {
     public:
@@ -31,7 +32,7 @@ class camera {
 
     std::string output = "render.ppm";
 
-    void render(const hittable& world) {
+    void render(const hittable& world, const hittable& lights) {
         initialize();
 
         //Select Output File
@@ -47,7 +48,7 @@ class camera {
                 for(int s_j = 0; s_j < sqrt_spp; s_j++) {
                     for(int s_i = 0; s_i < sqrt_spp; s_i++) {
                         ray r = get_ray(i, j, s_i, s_j);
-                        pixel_color += ray_color(r, max_depth, world);
+                        pixel_color += ray_color(r, max_depth, world, lights);
                     }
                 }
                 write_color(renderedFile, pixel_samples_scale * pixel_color);
@@ -58,7 +59,7 @@ class camera {
         std::clog << "\r Done. \n";
     }
 
-    void render(const hittable& world, int threads) {
+    void render(const hittable& world, const hittable& lights, int threads) {
         initialize();
 
 
@@ -66,7 +67,7 @@ class camera {
         std::clog << "Starting Render with " << threads << " Threads...\n\rResolution: " << image_width << "x" <<image_height <<"\n" << std::flush;
         thread t[threads];
         for(int i = 0; i < threads; i++) {
-            t[i] = thread(&camera::renderMT, this, std::cref(world), i, threads);
+            t[i] = thread(&camera::renderMT, this, std::cref(world), std::cref(lights), i, threads);
         }
         for(int i = 0; i < threads; i++) {
             t[i].join();
@@ -204,7 +205,7 @@ class camera {
         return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
 
-    color ray_color(const ray& r, int depth, const hittable& world) const {
+    color ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const {
         if (depth <= 0)
             return color(0,0,0);
         
@@ -215,20 +216,33 @@ class camera {
             return background;
         
         // Ray Bouncing
-        ray scattered;
-        color attenuation;
-        color color_from_emission = rec.mat->emitted(rec.u, rec.v, rec.p);
+        scatter_record srec;
+        color color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
 
-        if(!rec.mat->scatter(r, rec, attenuation, scattered))
+        if(!rec.mat->scatter(r, rec, srec))
             return color_from_emission;
 
-        color color_from_scatter = attenuation * ray_color(scattered, depth-1, world);
+        // Specular reflection, no PDF
+        if(srec.skip_pdf) {
+            return srec.attenuation * ray_color(srec.skip_pdf_ray, depth - 1, world, lights);
+        }
+
+        auto light_ptr = make_shared<hittable_pdf>(lights, rec.p);
+        mixture_pdf p(light_ptr, srec.pdf_ptr);
+
+        ray scattered = ray(rec.p, p.generate(), r.time());
+        auto pdf_val = p.value(scattered.direction());
+
+        double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
+
+        color sample_color = ray_color(scattered, depth - 1, world, lights);
+        color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_val;
 
         return color_from_emission + color_from_scatter;
 
     }
 
-    void renderMT(const hittable& world, int curr, int threads) {
+    void renderMT(const hittable& world, const hittable& lights, int curr, int threads) {
         ofstream file;
         file.open("tmp/render" + std::to_string(curr));
 
@@ -238,7 +252,7 @@ class camera {
                 for(int s_j = 0; s_j < sqrt_spp; s_j++) {
                     for(int s_i = 0; s_i < sqrt_spp; s_i++) {
                         ray r = get_ray(i, j, s_i, s_j);
-                        pixel_color += ray_color(r, max_depth, world);
+                        pixel_color += ray_color(r, max_depth, world, lights);
                     }
                 }
                 write_color(file, pixel_samples_scale * pixel_color);

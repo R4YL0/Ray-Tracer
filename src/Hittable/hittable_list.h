@@ -15,10 +15,14 @@ class hittable_list : public hittable {
         hittable_list() {}
         hittable_list(shared_ptr<hittable> object) { add(object); }
 
-        void clear() {objects.clear();}
+        void clear() {
+            objects.clear();
+            cUpdate = false;
+        }
         void add(shared_ptr<hittable> object) {
             objects.push_back(object);
             bbox = aabb(bbox, object->bounding_box());
+            cUpdate = false;
         }
 
         bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
@@ -39,23 +43,45 @@ class hittable_list : public hittable {
 
         aabb bounding_box() const override {return bbox;}
 
-        // TODO: Fix Bug that makes all darker, scene10.ppm
-        point3 center(double time) const override {
+        double pdf_value(const point3& origin, const vec3& direction) const override {
+            auto weight = 1.0 / objects.size();
+            auto sum = 0.0;
+
+            for(const auto& object : objects)
+                sum += weight * object->pdf_value(origin, direction);
+
+            return sum;
+        }
+
+        vec3 random(const point3& origin) const override {
+            auto int_size = int(objects.size());
+            return objects[random_int(0, int_size-1)]->random(origin);
+        }
+
+        point3 center(double time) override {
+            if(cUpdate)
+                return cPoint;
             int div = objects.size();
             int x = 0;
             int y = 0;
             int z = 0;
             for(shared_ptr<hittable> object : objects) {
-                x += (object->center(time).x()/div);
-                y += (object->center(time).y()/div);
-                z += (object->center(time).z()/div);
+                x += object->center(time).x();
+                y += object->center(time).y();
+                z += object->center(time).z();
             }
-            return point3(x, y, z);
+            x /= div;
+            y /= div;
+            z /= div;
+            cPoint = point3(x,y,z);
+            cUpdate = true;
+            return cPoint;
         }
 
     private:
         aabb bbox;
         point3 cPoint;
+        bool cUpdate = false;
 };
 
 #endif

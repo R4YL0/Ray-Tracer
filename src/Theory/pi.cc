@@ -1,4 +1,4 @@
-#include "Helper\rtweekend.h"
+#include "../Helper/rtweekend.h"
 
 #include <iostream>
 #include <iomanip>
@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 int main() {
+    /*
     int inside_circle = 0;
     int inside_circle_stratified = 0;
     int sqrt_N = 1000;
@@ -27,4 +28,16 @@ int main() {
               << (4.0 * inside_circle) / (sqrt_N*sqrt_N) << '\n'
               << "Stratified Estimate of Pi = "
               << (4.0 * inside_circle_stratified) / (sqrt_N*sqrt_N) << '\n';
+    */
+
+    int N = 100'000;
+    int inside_circle = 0;
+    for(int i = 0; i < N; i++) {
+        auto x = random_double(-1,1);
+        auto y = random_double(-1,1);
+        if(x*x + y*y < 1)
+            inside_circle++;
+    }
+    std::cout << std::fixed << std::setprecision(12);
+    std::cout << "Estimated area of unit circle = " << (4.0 * inside_circle) / N << '\n';
 }
