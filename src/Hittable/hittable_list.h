@@ -44,6 +44,9 @@ class hittable_list : public hittable {
         aabb bounding_box() const override {return bbox;}
 
         double pdf_value(const point3& origin, const vec3& direction) const override {
+            if(objects.empty())
+                return random_double();
+
             auto weight = 1.0 / objects.size();
             auto sum = 0.0;
 
@@ -54,6 +57,9 @@ class hittable_list : public hittable {
         }
 
         vec3 random(const point3& origin) const override {
+            if(objects.empty())
+                return random_unit_vector();
+            
             auto int_size = int(objects.size());
             return objects[random_int(0, int_size-1)]->random(origin);
         }

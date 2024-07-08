@@ -13,7 +13,7 @@
 #include "Hittable/surface.h"
 #include "Materials/texture.h"
 
-void scene1(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene1(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Materials Scene
     // Materials    
     auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
@@ -51,7 +51,7 @@ void scene1(hittable_list& world, camera& cam, int image_width = 400, int sample
     
     return;
 }
-void scene2(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene2(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Light-bleeding Scene
     // Variables
     auto R = cos(pi/4);
@@ -69,7 +69,8 @@ void scene2(hittable_list& world, camera& cam, int image_width = 400, int sample
     cam.image_width         = image_width;
     cam.samples_per_pixel   = samples_per_pixel;
     cam.max_depth           = max_depth;
-    cam.background          = color(0.70, 0.80, 1.00);
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
+    cam.backgroundTex       = make_shared<image_texture>("earthmap.jpg");
 
     // Camera Position
     cam.vfov     = 90;
@@ -87,7 +88,7 @@ void scene2(hittable_list& world, camera& cam, int image_width = 400, int sample
     return;
 }
 
-void scene3(hittable_list& world, camera& cam, int image_width = 1200, int samples_per_pixel = 500, int max_depth = 50) {
+void scene3(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 1200, int samples_per_pixel = 500, int max_depth = 50) {
     // InAWeekend Scene
     // Materials
     auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
@@ -151,7 +152,7 @@ void scene3(hittable_list& world, camera& cam, int image_width = 1200, int sampl
     return;
 }
 
-void scene4(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene4(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Moving Scene and BVH
     // Materials
     auto checker   = make_shared<checker_texture>(0.32, color(.2, .3, .1), color(.9, .9, .9));
@@ -219,7 +220,7 @@ void scene4(hittable_list& world, camera& cam, int image_width = 400, int sample
     return;
 }
 
-void scene5(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene5(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Checkerboard Scene
     // Materials
     auto checker = make_shared<checker_texture>(0.32, color(.2, .3, .1), color(.9, .9, .9));
@@ -250,7 +251,7 @@ void scene5(hittable_list& world, camera& cam, int image_width = 400, int sample
     return;
 }
 
-void scene6(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene6(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Textures Scene
     // Textures
     auto earth_texture = make_shared<image_texture>("earthmap.jpg");
@@ -287,7 +288,7 @@ void scene6(hittable_list& world, camera& cam, int image_width = 400, int sample
     return;
 }
 
-void scene7(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene7(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Perlin-Noise Scene
     // Materials
     auto pertext = make_shared<noise_texture>(4);
@@ -318,7 +319,7 @@ void scene7(hittable_list& world, camera& cam, int image_width = 400, int sample
     return;
 }
 
-void scene8(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene8(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Quad Scene
     // Materials
     auto left_red     = make_shared<lambertian>(color(1.0, 0.2, 0.2));
@@ -356,7 +357,7 @@ void scene8(hittable_list& world, camera& cam, int image_width = 400, int sample
     return;
 }
 
-void scene9(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
+void scene9(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 100, int max_depth = 50) {
     // Diffuse-Light Scene
     // Materials
     auto pertext = make_shared<noise_texture>(4);
@@ -452,7 +453,7 @@ void scene10(hittable_list& world, hittable_list& lights, camera& cam, int image
     return;
 }
 
-void scene11(hittable_list& world, camera& cam, int image_width = 600, int samples_per_pixel = 200, int max_depth = 50) {
+void scene11(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 600, int samples_per_pixel = 200, int max_depth = 50) {
     // Cornell Box w/ Constant_Medium
     // Materials
     auto red   = make_shared<lambertian>(color(.65, .05, .05));
@@ -501,7 +502,7 @@ void scene11(hittable_list& world, camera& cam, int image_width = 600, int sampl
     return;
 }
 
-void scene12(hittable_list& world, camera& cam, int image_width = 400, int samples_per_pixel = 250, int max_depth = 4) {
+void scene12(hittable_list& world, hittable_list& lights, camera& cam, int image_width = 400, int samples_per_pixel = 250, int max_depth = 4) {
     // TheNextWeek Scene
     // Materials
     auto ground = make_shared<lambertian>(color(0.48, 0.83, 0.53));
@@ -561,6 +562,8 @@ void scene12(hittable_list& world, camera& cam, int image_width = 400, int sampl
         )
     );
     world.add(make_shared<quad>(point3(123, 554, 147), vec3(300, 0, 0), vec3(0, 0, 265), light));
+    lights.add(make_shared<quad>(point3(123, 554, 147), vec3(300, 0, 0), vec3(0, 0, 265), shared_ptr<material>()));
+
 
     // Camera Resolution
     cam.aspect_ratio      = 1.0;

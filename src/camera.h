@@ -19,6 +19,7 @@ class camera {
     int     samples_per_pixel = 10; // Anti-Aliasing Samples
     int     max_depth         = 10; // Ray Bounces Limit
     color   background;
+    std::shared_ptr<texture> backgroundTex;
 
     // Camera Position
     double vfov     = 90; // Vertical FoV
@@ -37,12 +38,12 @@ class camera {
 
         //Select Output File
         ofstream renderedFile;
-        renderedFile.open(output);
+        renderedFile.open("../Rendered_Images/"+output);
 
         renderedFile << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
+        std::clog << "Starting Render...\n\rResolution: " << image_width << "x" <<image_height <<"\n" << std::flush;
         for(int j = 0; j < image_height; j++) {
-            std::clog << "Starting Render...\n\rResolution: " << image_width << "x" <<image_height <<"\n" << std::flush;
             for(int i = 0; i < image_width; i++) {
                 color pixel_color(0,0,0);
                 for(int s_j = 0; s_j < sqrt_spp; s_j++) {
@@ -135,7 +136,7 @@ class camera {
         pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
         recip_sqrt_spp = 1.0 / sqrt_spp;
 
-        pixel_samples_scale = 1.0 / samples_per_pixel;
+        //pixel_samples_scale = 1.0 / samples_per_pixel;
 
         center = lookfrom;
 
@@ -169,6 +170,10 @@ class camera {
 
         // Process Line Counter
         counter = image_height;
+
+        // If not set, initialize backgroundTex to solid_color
+        if(backgroundTex == nullptr)
+            backgroundTex = make_shared<solid_color>(color());
     }
 
     ray get_ray(int i , int j, int s_i, int s_j) const {
@@ -187,7 +192,6 @@ class camera {
 
     vec3 sample_square_stratified(int s_i, int s_j) const {
         // Return Vector to random point in square sub-pixel of indices s_i, s_j for idealized unit square [-.5, -.5] to [.5, .5]
-
         auto px = ((s_i + random_double()) * recip_sqrt_spp) - 0.5;
         auto py = ((s_j + random_double()) * recip_sqrt_spp) - 0.5;
 
@@ -211,10 +215,18 @@ class camera {
         
         hit_record rec;
 
-        // Ambient Illumination
-        if(!world.hit(r, interval(0.001, infinity), rec))
-            return background;
-        
+        // Ambient Illumination TODO: Add Background IMG
+        if(!world.hit(r, interval(0.001, infinity), rec)) {
+            double u, v;
+            vec3 p = unit_vector(r.direction());
+            auto theta = acos(-p.y());
+            auto phi = atan2(-p.z(), p.x()) + pi;
+
+            u = phi / (2*pi);
+            v = theta / pi;
+            return backgroundTex->value(u,v,p);
+        }
+
         // Ray Bouncing
         scatter_record srec;
         color color_from_emission = rec.mat->emitted(r, rec, rec.u, rec.v, rec.p);
@@ -232,13 +244,33 @@ class camera {
 
         ray scattered = ray(rec.p, p.generate(), r.time());
         auto pdf_val = p.value(scattered.direction());
+        //ray scattered = ray(rec.p, srec.pdf_ptr->generate(), r.time());
+        //auto pdf_val = srec.pdf_ptr->value(scattered.direction());
 
         double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
 
         color sample_color = ray_color(scattered, depth - 1, world, lights);
-        color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_val;
+        color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_val; //Possible Rounding Errors
+        
+        color colorSum = color_from_scatter + color_from_emission;
 
-        return color_from_emission + color_from_scatter;
+        //Limit colorSum to Range [0,1] and set NaN to 0.0
+        for(int i = 0; i < 3; i++) {
+            if(colorSum[i] != colorSum[i] || colorSum[i] < 0.0) {
+                colorSum[0] = 0.0;
+                colorSum[1] = 0.0;
+                colorSum[2] = 0.0;
+                break; 
+            } else if (colorSum[i] > 1.0) {
+                double scale = fmax(colorSum[0], fmax(colorSum[1], colorSum[2]));
+                colorSum[0] /= scale;
+                colorSum[1] /= scale;
+                colorSum[2] /= scale;
+                break;
+            }
+        }
+
+        return colorSum;
 
     }
 
