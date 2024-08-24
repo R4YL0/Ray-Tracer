@@ -34,7 +34,7 @@ void scene1(hittable_list& world, hittable_list& lights, camera& cam, int image_
     cam.image_width         = image_width;
     cam.samples_per_pixel   = samples_per_pixel;
     cam.max_depth           = max_depth;
-    cam.background        = color(0.70, 0.80, 1.00);
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
 
     // Camera Position
     cam.vfov     = 90;
@@ -59,10 +59,11 @@ void scene2(hittable_list& world, hittable_list& lights, camera& cam, int image_
     // Materials
     auto material_left = make_shared<lambertian>(color(0,0,1));
     auto material_right = make_shared<lambertian>(color(1,0,0));
+    auto material_dielectric = make_shared<dielectric>(0.4);
 
     // Objects
     world.add(make_shared<sphere>(point3(-R, 0, -1), R, material_left));
-    world.add(make_shared<sphere>(point3(R, 0, -1), R, material_right));
+    world.add(make_shared<scale>(make_shared<sphere>(point3(R, 0, -1), R, material_dielectric), vec3(1.2, 1.2, 1.2)));
 
     // Camera Resolution
     cam.aspect_ratio        = 16.0 / 9.0;
@@ -70,7 +71,7 @@ void scene2(hittable_list& world, hittable_list& lights, camera& cam, int image_
     cam.samples_per_pixel   = samples_per_pixel;
     cam.max_depth           = max_depth;
     cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
-    cam.backgroundTex       = make_shared<image_texture>("earthmap.jpg");
+    //cam.backgroundTex       = make_shared<image_texture>("earthmap.jpg");
 
     // Camera Position
     cam.vfov     = 90;
@@ -129,12 +130,15 @@ void scene3(hittable_list& world, hittable_list& lights, camera& cam, int image_
         }
     }
 
+    //Add BVH
+    world = hittable_list(make_shared<bvh_node>(world));
+
     // Camera Resolution
-    cam.aspect_ratio      = 16.0 / 9.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel; // 9 for Lite
-    cam.max_depth         = max_depth; // 20 for Lite
-    cam.background        = color(0.70, 0.80, 1.00);
+    cam.aspect_ratio        = 16.0 / 9.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel; // 9 for Lite
+    cam.max_depth           = max_depth; // 20 for Lite
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
 
     // Camera Position
     cam.vfov     = 20;
@@ -198,11 +202,11 @@ void scene4(hittable_list& world, hittable_list& lights, camera& cam, int image_
     world = hittable_list(make_shared<bvh_node>(world));
 
     // Camera Resolution
-    cam.aspect_ratio      = 16.0 / 9.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.70, 0.80, 1.00);
+    cam.aspect_ratio        = 16.0 / 9.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
 
     // Camera Position
     cam.vfov     = 20;
@@ -230,11 +234,11 @@ void scene5(hittable_list& world, hittable_list& lights, camera& cam, int image_
     world.add(make_shared<sphere>(point3(0,  10, 0), 10, make_shared<lambertian>(checker)));
 
     // Camera Resolution
-    cam.aspect_ratio      = 16.0 / 9.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.70, 0.80, 1.00);
+    cam.aspect_ratio        = 16.0 / 9.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
 
     // Camera Position
     cam.vfov     = 20;
@@ -267,11 +271,11 @@ void scene6(hittable_list& world, hittable_list& lights, camera& cam, int image_
     world.add(globe);
 
     // Camera Resolution
-    cam.aspect_ratio      = 16.0 / 9.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.70, 0.80, 1.00);
+    cam.aspect_ratio        = 16.0 / 9.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
 
     // Camera Position
     cam.vfov     = 20;
@@ -298,11 +302,11 @@ void scene7(hittable_list& world, hittable_list& lights, camera& cam, int image_
     world.add(make_shared<sphere>(point3(0, 2, 0), 2, make_shared<lambertian>(pertext)));
 
     // Camera Resolution
-    cam.aspect_ratio      = 16.0 / 9.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.70, 0.80, 1.00);
+    cam.aspect_ratio        = 16.0 / 9.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
 
     // Camera Position
     cam.vfov     = 20;
@@ -336,11 +340,11 @@ void scene8(hittable_list& world, hittable_list& lights, camera& cam, int image_
     world.add(make_shared<quad>(point3(-2,-3, 5), vec3(4, 0, 0), vec3(0, 0,-4), lower_teal));
 
     // Camera Resolution
-    cam.aspect_ratio      = 1.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.70, 0.80, 1.00);
+    cam.aspect_ratio        = 1.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.70, 0.80, 1.00));
 
     // Camera Position
     cam.vfov     = 80;
@@ -371,11 +375,11 @@ void scene9(hittable_list& world, hittable_list& lights, camera& cam, int image_
     world.add(make_shared<quad>(point3(3, 1, -2), vec3(2, 0, 0), vec3(0, 2, 0), difflight));
 
     // Camera Resolution
-    cam.aspect_ratio      = 16.0 / 9.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.0, 0.0, 0.0);
+    cam.aspect_ratio        = 16.0 / 9.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.0, 0.0, 0.0));
 
     // Camera Position
     cam.vfov     = 20;
@@ -427,16 +431,16 @@ void scene10(hittable_list& world, hittable_list& lights, camera& cam, int image
     //Lights
     world.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), light));
 
-    lights.add(make_shared<sphere>(point3(190, 90, 190), 90, m));
+    //lights.add(make_shared<sphere>(point3(190, 90, 190), 90, m));
     lights.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), m));
     
 
     // Camera Resolution
-    cam.aspect_ratio      = 1.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.0, 0.0, 0.0);
+    cam.aspect_ratio        = 1.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.0, 0.0, 0.0));
 
     // Camera Position
     cam.vfov     = 40;
@@ -460,6 +464,7 @@ void scene11(hittable_list& world, hittable_list& lights, camera& cam, int image
     auto white = make_shared<lambertian>(color(.73, .73, .73));
     auto green = make_shared<lambertian>(color(.12, .45, .15));
     auto light = make_shared<diffuse_light>(color(7, 7, 7));
+    auto m     = shared_ptr<material>(); //Placeholder for Light
 
     //Objects
     world.add(make_shared<quad>(point3(555, 0, 0), vec3(0, 555, 0), vec3(0, 0, 555), green));
@@ -479,13 +484,14 @@ void scene11(hittable_list& world, hittable_list& lights, camera& cam, int image
     world.add(make_shared<constant_medium>(box2, 0.01, color(1, 1, 1)));
 
     world.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), light));
+    lights.add(make_shared<quad>(point3(343, 554, 332), vec3(-130, 0, 0), vec3(0, 0, -105), m));
 
     // Camera Resolution
-    cam.aspect_ratio      = 1.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.0, 0.0, 0.0);
+    cam.aspect_ratio        = 1.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.0, 0.0, 0.0));
 
     // Camera Position
     cam.vfov     = 40;
@@ -564,13 +570,16 @@ void scene12(hittable_list& world, hittable_list& lights, camera& cam, int image
     world.add(make_shared<quad>(point3(123, 554, 147), vec3(300, 0, 0), vec3(0, 0, 265), light));
     lights.add(make_shared<quad>(point3(123, 554, 147), vec3(300, 0, 0), vec3(0, 0, 265), shared_ptr<material>()));
 
+    //Add BVH
+    world = hittable_list(make_shared<bvh_node>(world));
+
 
     // Camera Resolution
-    cam.aspect_ratio      = 1.0;
-    cam.image_width       = image_width;
-    cam.samples_per_pixel = samples_per_pixel;
-    cam.max_depth         = max_depth;
-    cam.background        = color(0.0, 0.0, 0.0);
+    cam.aspect_ratio        = 1.0;
+    cam.image_width         = image_width;
+    cam.samples_per_pixel   = samples_per_pixel;
+    cam.max_depth           = max_depth;
+    cam.backgroundTex       = make_shared<solid_color>(color(0.0, 0.0, 0.0));
 
     // Camera Position
     cam.vfov     = 40;

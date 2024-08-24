@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include "Helper/rtweekend.h"
+#include "External/glfw3.h"
 
 #include "Hittable/hittable.h"
 #include "Materials/material.h"
@@ -18,7 +19,6 @@ class camera {
     int     image_width       = 100;
     int     samples_per_pixel = 10; // Anti-Aliasing Samples
     int     max_depth         = 10; // Ray Bounces Limit
-    color   background;
     std::shared_ptr<texture> backgroundTex;
 
     // Camera Position
@@ -32,80 +32,49 @@ class camera {
     double focus_dist = 10;
 
     std::string output = "render.ppm";
-
-    void render(const hittable& world, const hittable& lights) {
+    
+    void render(const hittable& world, const hittable& lights, int threads = 1, bool denoise = false) {
         initialize();
 
-        //Select Output File
-        ofstream renderedFile;
-        renderedFile.open("../Rendered_Images/"+output);
-
-        renderedFile << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-
-        std::clog << "Starting Render...\n\rResolution: " << image_width << "x" <<image_height <<"\n" << std::flush;
-        for(int j = 0; j < image_height; j++) {
-            for(int i = 0; i < image_width; i++) {
-                color pixel_color(0,0,0);
-                for(int s_j = 0; s_j < sqrt_spp; s_j++) {
-                    for(int s_i = 0; s_i < sqrt_spp; s_i++) {
-                        ray r = get_ray(i, j, s_i, s_j);
-                        pixel_color += ray_color(r, max_depth, world, lights);
-                    }
-                }
-                write_color(renderedFile, pixel_samples_scale * pixel_color);
-            }
-            std::clog << "\rScanlines remaining: " << --counter << '\n' << std::flush;
-        }
-        renderedFile.close();
-        std::clog << "\r Done. \n";
-    }
-
-    void render(const hittable& world, const hittable& lights, int threads) {
-        initialize();
-
-
+        double* img = (double*) malloc(sizeof(double)*image_width*image_height*3);
+        double* dNois;
         // Divide the Work
-        std::clog << "Starting Render with " << threads << " Threads...\n\rResolution: " << image_width << "x" <<image_height <<"\n" << std::flush;
-        thread t[threads];
-        for(int i = 0; i < threads; i++) {
-            t[i] = thread(&camera::renderMT, this, std::cref(world), std::cref(lights), i, threads);
-        }
-        for(int i = 0; i < threads; i++) {
-            t[i].join();
-        } 
-
-        // Read The Files
-        std::ifstream files[threads];
-        std::string fileName[threads];
-        for(int i = 0; i < threads; i++) {
-            fileName[i] = "tmp/render" + std::to_string(i);
-            files[i].open(fileName[i]);
-            if(!files[i].is_open()) {
-                std::cout << "Error Reading File: render" + std::to_string(i) + ".exe";
-                return;
+        if(threads == 1) {
+            drawPixels(world, lights, img);
+        } else {
+            thread t[threads];
+            for(int i = 0; i < threads; i++) {
+                std::clog << "Starting Thread " << i << ":\n";
+                t[i] = thread(&camera::drawPixels, this, std::cref(world), std::cref(lights), std::ref(img), i, threads);
             }
+            for(int i = 0; i < threads; i++) {
+                t[i].join();
+            }
+        }
+
+        //Post Processing:
+        std::clog << "Starting Post-Processing:\n";
+        //Denoising
+        if(denoise) {
+            dNois = (double*) malloc(sizeof(double)*image_width*image_height*3);
+            denoising(img, dNois);
+        } else {
+            dNois = img;
         }
 
         // Output File        
         ofstream renderedFile;
         renderedFile.open("../Rendered_Images/"+output);
         
+        std::clog << "Writing output file...\n";
         renderedFile << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-        std::string line;
         for(int i = 0; i < image_height; i++) {
+            int row = i*image_width*3;
             for(int j = 0; j < image_width; j++) {
-                int curr = i % threads;
-                std::getline(files[curr],line);
-                renderedFile << line << '\n';
+                int col = j*3;
+                renderedFile << dNois[row + col] << ' ' << dNois[row + col + 1] << ' ' << dNois[row + col + 2] << '\n';
             }
         }
-
-        // Delete temporary files
-        for(int i = 0; i < threads; i++) {
-            files[i].close();
-            std::remove(fileName[i].c_str());
-        }
-        renderedFile.close();
         
         std::clog << "\rDone. \n";
         return;
@@ -135,8 +104,6 @@ class camera {
         sqrt_spp = int(sqrt(samples_per_pixel));
         pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
         recip_sqrt_spp = 1.0 / sqrt_spp;
-
-        //pixel_samples_scale = 1.0 / samples_per_pixel;
 
         center = lookfrom;
 
@@ -209,6 +176,55 @@ class camera {
         return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
 
+    void denoising(double* array, double* output) {
+        double weightCntr = 1;
+        double weightEdge = 0;
+        double weightCrnr = 0;
+        for(int i = 0; i < image_height; i++) {
+            for(int j = 0; j < image_width; j++) {
+                for(int k = 0; k < 3; k++) {
+                    double ratio = 0;
+                    output[image_width*3*i + 3*j + k] =  weightCntr *array[image_width*3*i + 3*j + k];
+                    ratio = weightCntr;
+                    if(i > 0) {
+                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*(i-1) + 3*j + k];
+                        ratio += weightEdge;
+                    }
+                    if(j > 0) {
+                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*i + 3*(j-1) + k];
+                        ratio += weightEdge;
+                    }
+                    if(i < image_height-1) {
+                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*(i+1) + 3*j + k];
+                        ratio += weightEdge;
+                    }
+                    if(j < image_width-1) {
+                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*i + 3*(j+1) + k];
+                        ratio += weightEdge;
+                    }
+                    if(i > 0 && j > 0) {
+                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i-1) + 3*(j-1) + k];
+                        ratio += weightCrnr;
+                    }
+                    if(i > 0 && j < image_width-1) {
+                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i-1) + 3*(j+1) + k];
+                        ratio += weightCrnr;
+                    }
+                    if(i < image_height-1 && j > 0) {
+                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i+1) + 3*(j-1) + k];
+                        ratio += weightCrnr;
+                    }
+                    if(i < image_height-1 && j < image_width-1) {
+                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i+1) + 3*(j+1) + k];
+                        ratio += weightCrnr;
+                    }
+                    output[image_width*3*i + 3*j + k] /= ratio;
+                }
+            }
+        }
+        return;
+    }
+
     color ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const {
         if (depth <= 0)
             return color(0,0,0);
@@ -244,17 +260,32 @@ class camera {
 
         ray scattered = ray(rec.p, p.generate(), r.time());
         auto pdf_val = p.value(scattered.direction());
-        //ray scattered = ray(rec.p, srec.pdf_ptr->generate(), r.time());
-        //auto pdf_val = srec.pdf_ptr->value(scattered.direction());
 
         double scattering_pdf = rec.mat->scattering_pdf(r, rec, scattered);
 
         color sample_color = ray_color(scattered, depth - 1, world, lights);
         color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_val; //Possible Rounding Errors
         
+        //Limit color_from_scatter to Range [0,1] and set NaN to 0.0, making direct-lit surfaces brighter. No difference found in images
+        /*
+        for(int i = 0; i < 3; i++) {
+            if(color_from_scatter[i] != color_from_scatter[i] || color_from_scatter[i] < 0.0) {
+                color_from_scatter[0] = 0.0;
+                color_from_scatter[1] = 0.0;
+                color_from_scatter[2] = 0.0;
+                break; 
+            } else if (color_from_scatter[i] > 1.0) {
+                double scale = fmax(color_from_scatter[0], fmax(color_from_scatter[1], color_from_scatter[2]));
+                color_from_scatter[0] /= scale;
+                color_from_scatter[1] /= scale;
+                color_from_scatter[2] /= scale;
+                break;
+            }
+        }
+        */
+
         color colorSum = color_from_scatter + color_from_emission;
 
-        //Limit colorSum to Range [0,1] and set NaN to 0.0
         for(int i = 0; i < 3; i++) {
             if(colorSum[i] != colorSum[i] || colorSum[i] < 0.0) {
                 colorSum[0] = 0.0;
@@ -269,34 +300,47 @@ class camera {
                 break;
             }
         }
-
         return colorSum;
 
     }
 
-    void renderMT(const hittable& world, const hittable& lights, int curr, int threads) {
-        ofstream file;
-        file.open("tmp/render" + std::to_string(curr));
-
-        for(int j = curr; j < image_height; j+= threads) {
-            for(int i = 0; i < image_width; i++) {
-                color pixel_color(0,0,0);
-                for(int s_j = 0; s_j < sqrt_spp; s_j++) {
-                    for(int s_i = 0; s_i < sqrt_spp; s_i++) {
-                        ray r = get_ray(i, j, s_i, s_j);
-                        pixel_color += ray_color(r, max_depth, world, lights);
+    void drawPixels(const hittable& world, const hittable& lights, double* array, int curr = 1, int threads = 1) {
+        if(threads != 1) {
+            for(int j = curr; j < image_height; j+= threads) {
+                for(int i = 0; i < image_width; i++) {
+                    color pixel_color(0,0,0);
+                    for(int s_j = 0; s_j < sqrt_spp; s_j++) {
+                        for(int s_i = 0; s_i < sqrt_spp; s_i++) {
+                            ray r = get_ray(i, j, s_i, s_j);
+                            pixel_color += ray_color(r, max_depth, world, lights);
+                        }
                     }
+                    write_color(&array[image_width*j*3 + i*3], pixel_samples_scale * pixel_color);
                 }
-                write_color(file, pixel_samples_scale * pixel_color);
+                std::lock_guard<std::mutex> lock(counterLock);
+                std::clog << "\rScanlines remaining: " << --counter << '\n' << std::flush;
             }
-            std::lock_guard<std::mutex> lock(counterLock);
-            std::clog << "\rScanlines remaining: " << --counter << '\n' << std::flush;
+            std::lock_guard<std::mutex> lock(finishLock);
+            std::clog << "Thread " << curr << " finished\n" << std::flush;
+            return;
+        } else {
+            for(int j = curr; j < image_height; j+= 1) {
+                for(int i = 0; i < image_width; i++) {
+                    color pixel_color(0,0,0);
+                    for(int s_j = 0; s_j < sqrt_spp; s_j++) {
+                        for(int s_i = 0; s_i < sqrt_spp; s_i++) {
+                            ray r = get_ray(i, j, s_i, s_j);
+                            pixel_color += ray_color(r, max_depth, world, lights);
+                        }
+                    }
+                    write_color(&array[image_width*j*3 + i*3], pixel_samples_scale * pixel_color);
+                }
+                std::clog << "\rScanlines remaining: " << --counter << '\n' << std::flush;
+            }
+            return;
         }
-        file.close();
-        std::lock_guard<std::mutex> lock(finishLock);
-        std::clog << "Thread " << curr << " finished\n" << std::flush;
-        return;
     }
+
 
 };
 

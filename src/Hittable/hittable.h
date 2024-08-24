@@ -336,41 +336,76 @@ class rotate_z : public hittable {
 class scale : public hittable {
     public:
         scale(shared_ptr<hittable> object, const vec3& scaling)
-        : object(object), xScale(scaling.x()), yScale(scaling.y()), zScale(scaling.z()) {
+        : object(object), scaleVec(scaling){
             //Scale the bbox from the center point outward
             xScaled = object->bounding_box().x;
             yScaled = object->bounding_box().y;
             zScaled = object->bounding_box().z;
 
             int mid = xScaled.max/2 + xScaled.min/2;
-            int lower = mid - xScale*xScaled.min;
-            int upper = mid + xScale*xScaled.max;
+            int lower = mid - scaleVec.x()*xScaled.min;
+            int upper = mid + scaleVec.x()*xScaled.max;
             xScaled = interval(lower, upper);
 
             mid = yScaled.max/2 + yScaled.min/2;
-            lower = mid - yScale*yScaled.min;
-            upper = mid + yScale*yScaled.max;
+            lower = mid - scaleVec.y()*yScaled.min;
+            upper = mid + scaleVec.y()*yScaled.max;
             yScaled = interval(lower, upper);
 
             mid = zScaled.max/2 + zScaled.min/2;
-            lower = mid - zScale*zScaled.min;
-            upper = mid + zScale*zScaled.max;
+            lower = mid - scaleVec.z()*zScaled.min;
+            upper = mid + scaleVec.z()*zScaled.max;
             zScaled = interval(lower, upper);
 
             bbox = aabb(xScaled, yScaled, zScaled);
         }
 
         bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+            // BUG: Doesn't work with intersecting objects
             //Scale object
-            return false;
+            vec3 invScale(1.0 / scaleVec.x(), 1.0 / scaleVec.y(), 1.0 / scaleVec.z());
+            
+            // Move Obj Center to (0, 0, 0)
+            auto origin = r.origin() - object->center(r.time());
+            auto direction = r.direction();
+
+            // Inverse Scale Camera
+            origin = origin * invScale;
+
+            // Move Obj Center back$
+            origin += object->center(r.time());
+
+            ray scaled_r(origin, direction, r.time());
+
+            // Determine if Intersection in object space
+            if(!object->hit(scaled_r, ray_t, rec))
+                return false;
+
+            // Change intersection point from object space to world space
+            auto p = rec.p - object->center(r.time());
+
+            p = p * scaleVec;
+
+            p += object->center(r.time());
+
+            // Change Normal from object space to world space
+            auto normal = rec.normal;
+            // Normal should be consistent with recorded Ray
+            /*
+            normal[1] = cos_theta*rec.normal[1] + sin_theta*rec.normal[0];
+            normal[0] = -sin_theta*rec.normal[1] + cos_theta*rec.normal[0];
+            */
+
+            rec.p = p;
+            rec.normal = normal;
+
+            return true;
         }
 
         aabb bounding_box() const override {return bbox;}
     private:
         shared_ptr<hittable> object;
-        double xScale;
-        double yScale;
-        double zScale;
+        vec3 scaleVec;
         aabb bbox;
         interval xScaled;
         interval yScaled;

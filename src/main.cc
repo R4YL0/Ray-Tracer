@@ -17,15 +17,15 @@ int main() {
     camera cam;
 
     //Scene
-    scene12(world, lights, cam, 800, 1000, 50);
+    scene11(world, lights, cam, 800, 200, 50);
 
     //Renderer w/ Performance measurement
     auto begin = high_resolution_clock::now();
     cam.render(world, lights, 8);
     auto end = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(end - begin);
+    auto duration = duration_cast<seconds>(end - begin);
 
-    std::clog << "Render Time: " << (duration.count()/1000000) << " seconds.\n";
+    std::clog << "Render Time: " << duration.count() << " seconds.\n";
 
     return 0;
 }
