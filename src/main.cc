@@ -17,11 +17,11 @@ int main() {
     camera cam;
 
     //Scene
-    scene11(world, lights, cam, 800, 200, 50);
+    scene12(world, lights, cam, 400, 20, 20);
 
     //Renderer w/ Performance measurement
     auto begin = high_resolution_clock::now();
-    cam.render(world, lights, 8);
+    cam.render(world, lights, 8, true);
     auto end = high_resolution_clock::now();
     auto duration = duration_cast<seconds>(end - begin);
 

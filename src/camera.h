@@ -6,7 +6,7 @@
 #include <mutex>
 
 #include "Helper/rtweekend.h"
-#include "External/glfw3.h"
+//#include "External/glfw3.h"
 
 #include "Hittable/hittable.h"
 #include "Materials/material.h"
@@ -176,49 +176,38 @@ class camera {
         return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
 
-    void denoising(double* array, double* output) {
-        double weightCntr = 1;
-        double weightEdge = 0;
-        double weightCrnr = 0;
-        for(int i = 0; i < image_height; i++) {
-            for(int j = 0; j < image_width; j++) {
+    void denoising(double* in, double* out) {
+        double weightCntr = 0.34;
+        double weightEdge = 0.33;
+        double weightCrnr = 0.33;
+        
+        for(int i = 0; i < image_width; i++) {
+            for(int j = 0; j < image_height; j++) {
+                double ratio = 0;
+                int pos = image_width*3*i + 3*j;
+                vec3 colorIn(&in[pos]);
+                for(int w = -4; w < 5; w++) {
+                    if(i+w == 0 || i+w == image_width)
+                        continue;
+                    for(int h = -4; h < 5; h++) {
+                        if(j+h == 0 || j+h == image_height) {
+                            continue;
+                        }
+                        vec3 colorNB(&in[image_width*3*(i+w)+3*(j+h)]);
+                        // Dynamic Weights:
+                        vec3 diff = colorIn-colorNB;
+                        double weight = 1 - diff.x()*diff.x()*diff.y()*diff.y()*diff.z()*diff.z()/255;
+                        std::clog << "weight is \n" << weight;
+                        // Static Weights:
+                        // double weight = w == 0 ? (h == 0 ? weightCntr : weightEdge) : (h == 0 ? weightEdge : weightCrnr);
+                        for(int k = 0; k < 3; k++) {
+                            out[pos + k] += weight*colorNB[k];
+                        }
+                        ratio += weight;
+                    }
+                }
                 for(int k = 0; k < 3; k++) {
-                    double ratio = 0;
-                    output[image_width*3*i + 3*j + k] =  weightCntr *array[image_width*3*i + 3*j + k];
-                    ratio = weightCntr;
-                    if(i > 0) {
-                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*(i-1) + 3*j + k];
-                        ratio += weightEdge;
-                    }
-                    if(j > 0) {
-                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*i + 3*(j-1) + k];
-                        ratio += weightEdge;
-                    }
-                    if(i < image_height-1) {
-                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*(i+1) + 3*j + k];
-                        ratio += weightEdge;
-                    }
-                    if(j < image_width-1) {
-                        output[image_width*3*i + 3*j + k] += weightEdge *array[image_width*3*i + 3*(j+1) + k];
-                        ratio += weightEdge;
-                    }
-                    if(i > 0 && j > 0) {
-                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i-1) + 3*(j-1) + k];
-                        ratio += weightCrnr;
-                    }
-                    if(i > 0 && j < image_width-1) {
-                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i-1) + 3*(j+1) + k];
-                        ratio += weightCrnr;
-                    }
-                    if(i < image_height-1 && j > 0) {
-                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i+1) + 3*(j-1) + k];
-                        ratio += weightCrnr;
-                    }
-                    if(i < image_height-1 && j < image_width-1) {
-                        output[image_width*3*i + 3*j + k] += weightCrnr*array[image_width*3*(i+1) + 3*(j+1) + k];
-                        ratio += weightCrnr;
-                    }
-                    output[image_width*3*i + 3*j + k] /= ratio;
+                    out[pos + k] /= ratio;
                 }
             }
         }
