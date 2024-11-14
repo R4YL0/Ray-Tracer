@@ -21,7 +21,7 @@ int main() {
 
     //Renderer w/ Performance measurement
     auto begin = high_resolution_clock::now();
-    cam.render(world, lights, 8, true);
+    cam.render(world, lights, 8, false);
     auto end = high_resolution_clock::now();
     auto duration = duration_cast<seconds>(end - begin);
 

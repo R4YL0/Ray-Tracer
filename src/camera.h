@@ -11,6 +11,7 @@
 #include "Hittable/hittable.h"
 #include "Materials/material.h"
 #include "Helper/pdf.h"
+#include "Post-processing/filter.h"
 
 class camera {
     public:
@@ -30,6 +31,8 @@ class camera {
     // Depth of field
     double defocus_angle = 0;
     double focus_dist = 10;
+
+    enum rayTracingType {ambientOcclusion, shadowRays, reflectionsOnly, globalIllumination};
 
     std::string output = "render.ppm";
     
@@ -57,7 +60,7 @@ class camera {
         //Denoising
         if(denoise) {
             dNois = (double*) malloc(sizeof(double)*image_width*image_height*3);
-            denoising(img, dNois);
+            dNois = filter(img, image_width, image_height);
         } else {
             dNois = img;
         }
@@ -176,51 +179,14 @@ class camera {
         return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
 
-    void denoising(double* in, double* out) {
-        double weightCntr = 0.34;
-        double weightEdge = 0.33;
-        double weightCrnr = 0.33;
-        
-        for(int i = 0; i < image_width; i++) {
-            for(int j = 0; j < image_height; j++) {
-                double ratio = 0;
-                int pos = image_width*3*i + 3*j;
-                vec3 colorIn(&in[pos]);
-                for(int w = -4; w < 5; w++) {
-                    if(i+w == 0 || i+w == image_width)
-                        continue;
-                    for(int h = -4; h < 5; h++) {
-                        if(j+h == 0 || j+h == image_height) {
-                            continue;
-                        }
-                        vec3 colorNB(&in[image_width*3*(i+w)+3*(j+h)]);
-                        // Dynamic Weights:
-                        vec3 diff = colorIn-colorNB;
-                        double weight = 1 - diff.x()*diff.x()*diff.y()*diff.y()*diff.z()*diff.z()/255;
-                        std::clog << "weight is \n" << weight;
-                        // Static Weights:
-                        // double weight = w == 0 ? (h == 0 ? weightCntr : weightEdge) : (h == 0 ? weightEdge : weightCrnr);
-                        for(int k = 0; k < 3; k++) {
-                            out[pos + k] += weight*colorNB[k];
-                        }
-                        ratio += weight;
-                    }
-                }
-                for(int k = 0; k < 3; k++) {
-                    out[pos + k] /= ratio;
-                }
-            }
-        }
-        return;
-    }
-
+    // Path Tracing, brings Global Illumination
     color ray_color(const ray& r, int depth, const hittable& world, const hittable& lights) const {
         if (depth <= 0)
             return color(0,0,0);
         
         hit_record rec;
 
-        // Ambient Illumination TODO: Add Background IMG
+        // hit function is Ray-Triangle Intersection Test, possibly HW accellerated
         if(!world.hit(r, interval(0.001, infinity), rec)) {
             double u, v;
             vec3 p = unit_vector(r.direction());
@@ -292,6 +258,8 @@ class camera {
         return colorSum;
 
     }
+
+    // TODO: Add Functions for Ambient Occlusion, Shadow Rays
 
     void drawPixels(const hittable& world, const hittable& lights, double* array, int curr = 1, int threads = 1) {
         if(threads != 1) {
