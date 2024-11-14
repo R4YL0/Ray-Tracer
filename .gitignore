@@ -1,4 +1,4 @@
 .vscode\
-.src\main.exe
-.src\MT.exe
-.src\window.exe
+src\main.exe
+src\MT.exe
+src\window.exe
