@@ -9,6 +9,8 @@
 
 double kernel[3][3] = {{-1/9, -1/9, 1-1/9}, {-2-1/9, 8/9, 2-1/9}, {-1-1/9, -1/9, 2-1/9}};
 
+double* out;
+
 double* filter(double* img, int imgWidth, int imgHeight, double* filter = kernel[0], int filterDim = 3) {
         double weightCntr = 0.34;
         double weightEdge = 0.33;
@@ -17,7 +19,7 @@ double* filter(double* img, int imgWidth, int imgHeight, double* filter = kernel
         //Apply Filter Matrix with Convolution (?)
         //double kernel[3][3] = {{-1/9, -1/9, 1-1/9}, {-2-1/9, 8/9, 2-1/9}, {-1-1/9, -1/9, 2-1/9}}
 
-        double out[imgWidth*imgHeight*3];
+        out[imgWidth*imgHeight*3];
         
         for(int i = 0; i < imgHeight; i++) {
             for(int j = 0; j < imgWidth; j++) {
