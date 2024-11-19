@@ -9,3 +9,8 @@ Similar to the Tutorial, to change the output, most of the changes can be done i
     - The 5th Attribute is *Samples Per Pixel*
     - The 6th Attribute is *Bounce Depth* (meaning, how often the Ray bounces, important for Global illumination)
 - Except the first three, all attributes have a *default* (see `scenes.h` to see their values)
+## Future Goals
+- Running the Ray Tracer on GPU (possibly using *OpenGL* or *DirectX*)
+- Experiment with different Anti-Aliasing methods
+- Implementing Easy-to-Use GUI interaction
+- Enabling Real-Time Interaction (i.e. converting it to a *Graphics Engine*)
