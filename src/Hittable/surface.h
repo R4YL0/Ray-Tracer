@@ -140,41 +140,50 @@ class circle : public quad {
         double D;
 };
 
-class triangle : public quad {
+class triangle : public hittable {
     public:
-        triangle(const point3& Q, const vec3& u, const vec3& v, shared_ptr<material> mat) 
-         : quad(Q, u, v, mat) {
+        triangle(const point3* verts, const vec3 *norms, shared_ptr<material> mats)
+        : mat(mats) {
+            vertex[0] = verts[0];
+            vertex[1] = verts[1];
+            vertex[2] = verts[2];
+            normal[0] = norms[0];
+            normal[1] = norms[1];
+            normal[2] = norms[2];
             // Q, Q+u, Q+v are edges of the Triangle
-            auto uLen = u.length_squared();
-            auto vLen = v.length_squared();
-            auto uv = dot(u,v);
+            auto uLen = vertex[1].length_squared();
+            auto vLen = vertex[2].length_squared();
+            auto uv = dot(vertex[1],vertex[2]);
 
             if(uv != 0) {
                 // if u,v perp
-                s = u;
-                t = v;
+                s = vertex[1];
+                t = vertex[2];
             }
             else if(uLen > vLen) {
-                s = v-dot(u,v)/(uLen*vLen)*u;
-                t = u;
+                s = vertex[2]-dot(vertex[1],vertex[2])/(uLen*vLen)*vertex[1];
+                t = vertex[1];
             }
             else {
-                s = u-dot(u,v)/(uLen*vLen)*v;
-                t = v;
+                s = vertex[1]-dot(vertex[1],vertex[2])/(uLen*vLen)*vertex[2];
+                t = vertex[2];
             }
 
-            cPoint = (Q + u/3 + v/3);
+            area = s.length()*t.length()/2;
+            //alternatively (?) area = cross(vertex[1]-vertex[0], vertex[2]-vertex[0]).length()/2;
+            
+            cPoint = (vertex[0] + vertex[1]/3 + vertex[2]/3);
             
          }
 
-        virtual void set_bounding_box() override {
+        virtual void set_bounding_box() {
             //Determine Square enclosing Triangle
-            auto bbox_diagonal1 = aabb(Q, Q+t+s);
-            auto bbox_diagonal2 = aabb(Q+s, Q+t);
+            auto bbox_diagonal1 = aabb(vertex[0], vertex[0]+t+s);
+            auto bbox_diagonal2 = aabb(vertex[0]+s, vertex[0]+t);
             bbox = aabb(bbox_diagonal1, bbox_diagonal1);
         }
         
-        virtual bool is_interior(double a, double b, hit_record& rec) const override {
+        virtual bool is_interior(double a, double b, hit_record& rec) const {
             // Can be adapted to fit any 2D-Shape
             interval unit_interval = interval(0, 1);
 
@@ -189,17 +198,34 @@ class triangle : public quad {
         
         //TODO: Add pdf_value and random
 
+        double pdf_value(const point3& origin, const vec3& direction) const override {
+            hit_record rec;
+            if(!this->hit(ray(origin, direction), interval(0.001, infinity), rec))
+                return 0.0;
+            
+            auto distance_squared = rec.t * rec.t * direction.length_squared();
+            auto cosine = fabs(dot(direction, rec.normal) / direction.length());
+
+            return distance_squared / (cosine * area);
+        }
+
+        vec3 random(const point3& origin) const override {
+            //Return Random Point on Triangle
+            double s1 = random_double();
+            auto p = vertex[0] + (s1 * vertex[1]) + ((1-s1)*random_double() * vertex[2]);
+            return p - origin;
+        }
+
         point3 center(double time) const {return cPoint;}
 
     private:
-        point3 Q;
-        vec3 u, v;
-        vec3 w;
+        point3 vertex[3];
+        vec3 normal[3]; // Useful for Rasterization (?), makes polygon appear as if it has curves
         vec3 s, t; // Two perp vectors, needed for BBox
         shared_ptr<material> mat;
         aabb bbox;
-        vec3 normal;
         double D;
+        double area;
         point3 cPoint;
 };
 
