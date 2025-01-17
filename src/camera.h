@@ -45,7 +45,7 @@ class camera {
         if(threads == 1) {
             drawPixels(world, lights, img);
         } else {
-            thread t[threads];
+            thread *t = (thread *) malloc(threads*sizeof(thread *));
             for(int i = 0; i < threads; i++) {
                 std::clog << "Starting Thread " << i << ":\n";
                 t[i] = thread(&camera::drawPixels, this, std::cref(world), std::cref(lights), std::ref(img), i, threads);
@@ -53,6 +53,7 @@ class camera {
             for(int i = 0; i < threads; i++) {
                 t[i].join();
             }
+            free(t);
         }
 
         //Post Processing:
@@ -221,8 +222,7 @@ class camera {
         color sample_color = ray_color(scattered, depth - 1, world, lights);
         color color_from_scatter = (srec.attenuation * scattering_pdf * sample_color) / pdf_val; //Possible Rounding Errors
         
-        //Limit color_from_scatter to Range [0,1] and set NaN to 0.0, making direct-lit surfaces brighter. No difference found in images
-        /*
+        //Limit color_from_scatter to Range [0,1] and set NaN to 0.0, making direct-lit surfaces brighter
         for(int i = 0; i < 3; i++) {
             if(color_from_scatter[i] != color_from_scatter[i] || color_from_scatter[i] < 0.0) {
                 color_from_scatter[0] = 0.0;
@@ -237,24 +237,9 @@ class camera {
                 break;
             }
         }
-        */
 
-        color colorSum = color_from_scatter + color_from_emission;
+        color colorSum = color_from_scatter + color_from_emission; //Allow for Emmission-Distortion
 
-        for(int i = 0; i < 3; i++) {
-            if(colorSum[i] != colorSum[i] || colorSum[i] < 0.0) {
-                colorSum[0] = 0.0;
-                colorSum[1] = 0.0;
-                colorSum[2] = 0.0;
-                break; 
-            } else if (colorSum[i] > 1.0) {
-                double scale = fmax(colorSum[0], fmax(colorSum[1], colorSum[2]));
-                colorSum[0] /= scale;
-                colorSum[1] /= scale;
-                colorSum[2] /= scale;
-                break;
-            }
-        }
         return colorSum;
 
     }
